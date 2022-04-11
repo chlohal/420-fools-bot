@@ -1,49 +1,24 @@
-var getCategoryToSendTo = require("./get-category-of-message");
+var shouldReply = require("./should-reply-to-message");
 var config = require("./config");
-var getWebhookUrl = require("./get-webhook-url");
-var randomFromGenre = require("./random-from-genre");
-var sendQuote = require("./send-quote");
+//var getWebhookUrl = require("./get-webhook-url");
+//var randomFromGenre = require("./random-from-genre");
+var replyTo = require("./reply-to-message");
 var client = new (require('discord.js').Client)();
 
 client.once('ready', () => {
 	console.log('Ready!');
 });
 
-client.on("message", function(message) {
-    if(!message.author.bot) {
-        var sendCategory = getCategoryToSendTo(message);
-        if(sendCategory) {
-            var quote = randomFromGenre(sendCategory);
-            getWebhookUrl(message.channel, quote, function(url) {
-                sendQuote(url, quote);
-            });
-        }
-    }
+client.on("message", async function(message) {
+    if (await shouldReply(message)) replyTo(message);
+    
+    //    getWebhookUrl(message.channel, quote, function(url) {
+    //        sendQuote(url, quote);
+    //    });
 });
 
 
 client.login(config.TOKEN);
-
-
-
-
-//3
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -61,20 +36,13 @@ client.login(config.TOKEN);
  */
 
 /**
+ * @typedef {Object} Reply
+ * @property {Author} author
+ * @property {string} text
+ */
+
+/**
  * @typedef {Object} Author
- * @property {string} author
- * @property {string} id
- * @property {string} wikiId
- * @property {string[]} images
- */
-
-/**
- * @typedef {Quote[]} QuoteCollection
- */
-
-/**
- * @typedef {Object} QuoteGenreMatchDescription
- * @property {QuoteGenreID} category
- * @property {number} coef
- * @property {RegExp[]} matched
+ * @property {string} name
+ * @property {string} profileImageUrl
  */
