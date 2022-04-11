@@ -1,15 +1,6 @@
 const { Webhook, TextChannel } = require("discord.js");
-var fs = require("fs");
-const { config } = require("process");
-const findQuoteAuthor = require("./find-quote-author");
-const makePfpUrl = require("./make-pfp-url");
 
-var saveFile = __dirname + "/savedata/webhooks.json";
-
-if(!fs.existsSync(saveFile)) fs.writeFileSync(saveFile, "{}");
-
-var savedWebhooks = require(saveFile);
-
+var savedWebhooks = {};
 
 /**
  * 
@@ -17,21 +8,23 @@ var savedWebhooks = require(saveFile);
  * @param {import(".").Quote} quote 
  * @param {Function} cb 
  */
-module.exports = async function(channel, quote, cb) {
+module.exports = function(channel, quote) {
     
-    var webhook = await channel.createWebhook(quote.quoteAuthor, makePfpUrl(findQuoteAuthor(quote)) || config.defaultAvatar);
-    var url = `https://discord.com/api/webhooks/${webhook.id}/${webhook.token}`;
+    return new Promise(async function(resolve, reject) {
+        if(savedWebhooks[channel.id]) {
+            resolve(savedWebhooks[channel.id]);
+        } else {
+            var webhook = await channel.createWebhook(quote.author.name, quote.author.profileImage);
+            var url = `https://discord.com/api/webhooks/${webhook.id}/${webhook.token}`;
 
-    savedWebhooks[channel.id] = url;
-    try {
-    fs.writeFileSync(saveFile, JSON.stringify(savedWebhooks));
-    } catch(e) {
-        console.error(e);
-        console.error("hehe");
-    }
-    cb(url);
+            savedWebhooks[channel.id] = url;
+        
+            resolve(url);
 
-    setTimeout(function() {
-        webhook.delete();
-    }, 2000);
+            setTimeout(function() {
+                webhook.delete();
+                delete savedWebhooks[channel.id];
+            }, 60_000);
+        }
+    });
 }

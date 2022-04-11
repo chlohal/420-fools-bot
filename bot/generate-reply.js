@@ -1,17 +1,19 @@
 const { Message } = require("discord.js");
 
 var config = require("./config");
+const profilePictures = require("./profile-pictures");
 
-var https = require("https");
+var requestTextCompletion = require("./request-text-completion");
 
 /**
  * @param {Message} message
  * @returns {import(".").reply}
  */
 module.exports = async function(message) {
+    console.log("generating reply...");
     var processingPrompt = await makePromptFromMessage(message);
     
-    return makeReplyFromPrompt(processingPrompt);
+    return tryToComposeReply(processingPrompt, message);
 }
 
 async function makePromptFromMessage(message) {
@@ -25,30 +27,46 @@ async function makePromptFromMessage(message) {
     return processingPrompt;
 }
 
-async function makeReplyFromPrompt(promptText) {
-    var plainReply = await requestAiServer(promptText);
+async function tryToComposeReply(prompt, message) {
+    for(var i = config.textgenRetryTimes(); i >= 0; i--) {
+        try {
+            return makeReplyFromPrompt(prompt, message);
+        } catch(e) {} 
+        console.log("Bad format. Trying again.");
+    }
+    return makeReplyFromPrompt(prompt, message);
+}
+
+async function makeReplyFromPrompt(promptText, message) {
+    var plainReply = await requestTextCompletion(promptText);
     
     if(!plainReply.startsWith(promptText)) throw "Something went wrong on the generator's side.";
     
     var newText = plainReply.substring(promptText.length);
     
-    console.log(promptText);
-    
-    return parseReply(newText);
+    return parseReply(newText, message);
 }
 
-function parseReply(newText) {
-    var messages = newText.split("\n");
-    var reply = parseMessage(messages[0]);
+async function parseReply(newText, message) {
+    var messages = newText.trim().split("\n");
+
+    var reply = await parseMessage(messages[0]);
+
+    var profilePictureUrl = await profilePictures.getUrlForMessageAuthor(message);
+    if(!profilePictureUrl) profilePictureUrl = config.placeholderImageUrl();
     
-    console.log(reply);
-    
+    reply.author = {
+        name: '"' + reply.authorName.trim() + '"',
+        profileImage: profilePictureUrl
+    }
+
+    return reply;
 }
 
-function parseMessage(message) {
+async function parseMessage(message) {
     message = message.trim();
     //the default format: [hh:mm] nnnnnnn: msgmsgmsgmsgmsg
-    var defaultForm = /$\[\d\d:\d\d\] ([^:]+): (.+)^/.exec(message);
+    var defaultForm = /^\[\d\d:\d\d\] ([^:]+): (.+)$/.exec(message);
     if(defaultForm) {
         return {
             authorName: defaultForm[1],
@@ -57,45 +75,18 @@ function parseMessage(message) {
     }
     
     //the angle bracket irc-esque format: <nnnnnn> msgmsgmsgmsgmsgmsg
-    var angleBracketForm = /$<([^>]+)> (.+)/.exec(message);
+    var angleBracketForm = /^<([^>]+)> (.+)$/.exec(message);
     if(angleBracketForm) {
         return {
             authorName: defaultForm[1],
             text: defaultForm[2]
         }
     }
-    
+
+    throw "bad format! :/";
 }
 
-function requestAiServer(promptText) {
-    return new Promise(function(resolve, reject) {
-        var r = https.request({
-            hostname: "api.deepai.org",
-            path: "/api/text-generator",
-            method: "POST",
-            headers: {
-                "api-key": config.AI_TEXT_TOKEN,
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            
-        }, function(res) {            
-            var body = "";
-            res.on("data", chunk => body += chunk);
-            res.on("close", function() {
-                if (res.statusCode != "200") reject(`bad status code " + ${res.statusCode}\n${body}`);
-                
-                var j = JSON.parse(body);
-                
-                if (typeof j.output != "string") reject("Bad body! \n" + body);
-                else resolve(j.output);
-            })
-        });
-        
-        r.write(`text=${encodeURIComponent(promptText)}`, function() {
-            r.end();
-        });
-    });
-}
+
 
 /**
  * 

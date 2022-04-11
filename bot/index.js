@@ -11,10 +11,6 @@ client.once('ready', () => {
 
 client.on("message", async function(message) {
     if (await shouldReply(message)) replyTo(message);
-    
-    //    getWebhookUrl(message.channel, quote, function(url) {
-    //        sendQuote(url, quote);
-    //    });
 });
 
 

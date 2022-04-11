@@ -1,21 +1,11 @@
-var findQuoteAuthor = require("./find-quote-author");
-var makePfpUrl = require("./make-pfp-url");
 var https = require("https");
 
-/**
- * @param {string} url
- * @param {Quote} quote 
- */
-module.exports = function (url, quote) {
-
-    if(!quote) return;
-
-    var author = findQuoteAuthor(quote);
+module.exports = function (url, replyMessage) {
 
     var message = {
-        content: quote.quoteText,
-        username: quote.quoteAuthor,
-        avatar_url: makePfpUrl(author)
+        content: replyMessage.text,
+        username: replyMessage.author.name,
+        avatar_url: replyMessage.author.profileImage
     };
 
     sendWebhookRequest(url, message);

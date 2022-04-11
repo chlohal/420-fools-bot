@@ -16,7 +16,7 @@ module.exports = async function shouldReply(m) {
     
     var contextMessages = await message.channel.fetchMessages({ limit: config.contextMessageCount() });
     var cMsgArr = contextMessages.array;
-    
+
     for(var i = 0; i < cMsgArr.length; i++) {
         if(!messageIsPlain(cMsgArr[i])) return false;
     }
@@ -39,5 +39,5 @@ module.exports = async function shouldReply(m) {
  * @param {Message} message 
  */
 function messageIsPlain(message) {
-    return message.type == "DEFAULT" && message.attachments.size == 0 && !message.content.includes("\n");
+    return message.type == "DEFAULT" && message.attachments.size == 0 && message.content.indexOf("\n") == -1;
 }
