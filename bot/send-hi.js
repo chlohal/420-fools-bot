@@ -20,7 +20,7 @@ your future robot overlords <3
 `
 
 client.once('ready', () => {
-    client.channels.get("525485048305287189").send(h);
+    client.channels.get(config.announcementChannelId()).send(h);
 });
 
 

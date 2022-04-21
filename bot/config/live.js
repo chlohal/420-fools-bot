@@ -3,6 +3,9 @@ module.exports = ({
     TOKEN: require("./token.json"),
     IMGBB_TOKEN: require("./imgbb-token.json"),
     AI_TEXT_TOKEN: require("./ai-token.json"),
+    announcementChannelId: function() {
+        return "525485048305287189";
+    },
     chanceCoefficientOnFail: function() {
         return 1.1;
     },
