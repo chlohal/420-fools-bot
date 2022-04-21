@@ -3,11 +3,18 @@ const cache = require("./cache");
 
 var editImageForUser = require("./edit-image-for-user");
 const hashKeyUser = require("./hash-key-user");
+var resolvePlaceholder = require("./resolve-placeholder");
 
 
 module.exports = {
     fillCacheForMessageAuthor: fillCacheForMessageAuthor,
-    getUrlForMessageAuthor: getUrlForMessageAuthor
+    getUrlForMessageAuthor: getUrlForMessageAuthor,
+    getUrlForName: getUrlForName,
+    resolvePlaceholder: resolvePlaceholder
+}
+
+async function getUrlForName(name) {
+    return cache.getUrl(name);
 }
 
 async function getUrlForMessageAuthor(message) {
@@ -31,5 +38,5 @@ async function fillCacheForMessageAuthor(message) {
 }
 
 function nameOfAuthor(message) {
-    return message.member.nickname || message.author.username;
+    return (message.member && message.member.nickname) || message.author.username;
 }

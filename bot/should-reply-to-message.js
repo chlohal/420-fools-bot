@@ -39,5 +39,5 @@ module.exports = async function shouldReply(m) {
  * @param {Message} message 
  */
 function messageIsPlain(message) {
-    return message.type == "DEFAULT" && message.attachments.size == 0 && message.content.indexOf("\n") == -1;
+    return message.type == "DEFAULT" && message.attachments.size == 0 && message.content.indexOf("\n") == -1 && message.content.trim() != "";
 }

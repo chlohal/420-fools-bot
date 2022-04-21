@@ -4,15 +4,13 @@ module.exports = ({
     IMGBB_TOKEN: require("./imgbb-token.json"),
     AI_TEXT_TOKEN: require("./ai-token.json"),
     chanceCoefficientOnFail: function() {
-        return 10;
+        return 1.1;
     },
     initialChance: function() {
-        var now = new Date();
-        if(now.getMonth() == 3 && now.getDate() == 1) return 0.1;
-        else return 1;
+        return 0.3;
     },
     cooldown: function() {
-        return 0;1000 * 60 * 5;
+        return 1000 * 60 * 5;
     },
     contextMessageCount: function() {
         return 5;
@@ -21,12 +19,13 @@ module.exports = ({
         return 5;
     },
     placeholderImageUrl: function() {
-        return `https://loremflickr.com/g/100/100/robot`;
+        return `http://placeimg.com/100/100/any/greyscale`;
     },
     shouldNeverReplyToMessage: function(message) {
-        //don't send to NHS
-        if(message.guild.id == "392830469500043266") return true;
+        //don't send to non-NHS
+        if(message.guild.id != "392830469500043266") return true;
 
-        return message.channel.id == "632192195633348617";
+        //#counting
+        if(message.channel.id == "632192195633348617") return true;
     }
 })

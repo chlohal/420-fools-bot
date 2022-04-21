@@ -2,6 +2,7 @@ const { Message } = require("discord.js");
 
 var config = require("./config");
 const profilePictures = require("./profile-pictures");
+const otherUsers = require("./extra-users");
 
 var requestTextCompletion = require("./request-text-completion");
 
@@ -12,51 +13,70 @@ var requestTextCompletion = require("./request-text-completion");
 module.exports = async function(message) {
     console.log("generating reply...");
     var processingPrompt = await makePromptFromMessage(message);
+
+    console.log(processingPrompt);
     
-    return tryToComposeReply(processingPrompt, message);
+    return tryToComposeReply(processingPrompt.promptText, processingPrompt.ungarbledUserMap, message);
 }
 
 async function makePromptFromMessage(message) {
     var messages = await message.channel.fetchMessages({ limit: config.contextMessageCount() });
 
+    var garbledUserMap = {};
+
     var processingPrompt = messages.array()
         .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-        .map(x => formatMessageForAIProcessing(x))
+        .map(x => formatMessageForAIProcessing(x, garbledUserMap))
         .join("\n") + "\n";
     
-    return processingPrompt;
+    return {
+        promptText: processingPrompt,
+        ungarbledUserMap: invertMap(garbledUserMap)
+    };
 }
 
-async function tryToComposeReply(prompt, message) {
+function invertMap(map) {
+    var m = {};
+    Object.entries(map).forEach(kv=> m[kv[1]] = kv[0]);
+    return m;
+}
+
+async function tryToComposeReply(prompt, ungarbledUserMap, message) {
     for(var i = config.textgenRetryTimes(); i >= 0; i--) {
         try {
-            return makeReplyFromPrompt(prompt, message);
+            return makeReplyFromPrompt(prompt, ungarbledUserMap, message);
         } catch(e) {} 
         console.log("Bad format. Trying again.");
     }
-    return makeReplyFromPrompt(prompt, message);
+    return makeReplyFromPrompt(prompt, ungarbledUserMap, message);
 }
 
-async function makeReplyFromPrompt(promptText, message) {
+async function makeReplyFromPrompt(promptText, ungarbledUserMap, message) {
     var plainReply = await requestTextCompletion(promptText);
     
     if(!plainReply.startsWith(promptText)) throw "Something went wrong on the generator's side.";
     
     var newText = plainReply.substring(promptText.length);
     
-    return parseReply(newText, message);
+    return parseReply(newText, ungarbledUserMap, message);
 }
 
-async function parseReply(newText, message) {
+async function parseReply(newText, ungarbledUserMap, message) {
     var messages = newText.trim().split("\n");
 
     var reply = await parseMessage(messages[0]);
 
-    var profilePictureUrl = await profilePictures.getUrlForMessageAuthor(message);
-    if(!profilePictureUrl) profilePictureUrl = config.placeholderImageUrl();
+    var realAuthorName = reply.authorName.trim();
+
+    //TODO: make garbling better
+    //realAuthorName = ungarbledUserMap[reply.authorName.trim()];
+    //if(!realAuthorName) realAuthorName = otherUsers.getNewUserFor(reply.authorName);
+
+    var profilePictureUrl = await profilePictures.getUrlForName(realAuthorName);
+    if(!profilePictureUrl) profilePictureUrl = await profilePictures.resolvePlaceholder(realAuthorName);
     
     reply.author = {
-        name: '"' + reply.authorName.trim() + '"',
+        name: realAuthorName,
         profileImage: profilePictureUrl
     }
 
@@ -92,10 +112,15 @@ async function parseMessage(message) {
  * 
  * @param {Message} message
  */
-function formatMessageForAIProcessing(message) {
+function formatMessageForAIProcessing(message, garbledUserMap) {
     var hh = pad0(message.createdAt.getHours(), 2);
     var mm = pad0(message.createdAt.getMinutes(), 2);
-    var name = message.member.nickname || message.author.username;
+    var name = (message.member && message.member.nickname) || message.author.username;
+
+    //TODO: make garbling work
+    //var garbledName;
+    //if(garbledUserMap[name]) garbledName = garbledUserMap[name];
+    //else garbledName = garbledUserMap[name] = otherUsers.getIndex(Object.keys(garbledUserMap).length);
     
     return `[${hh}:${mm}] ${name}: ${message.content}`;
 }

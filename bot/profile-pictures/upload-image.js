@@ -4,7 +4,7 @@ var config = require("../config");
 var boundary = "xxxxxxxxxxxxxxxxxxxxxx";
 
 module.exports = async function(imageBuffer, userName) {
-    var bodyBuffer = singlePartMultipart("image", imageBuffer, "image/png");
+    var bodyBuffer = singlePartMultipart("image", imageBuffer, "image/png", userName);
 
     return new Promise(function(resolve, reject) {
         var r = https.request({
@@ -41,7 +41,7 @@ module.exports = async function(imageBuffer, userName) {
 }
 
 
-function singlePartMultipart(title, buffer, type) {
+function singlePartMultipart(title, buffer, type, userName) {
 
     title = slugify(title);
 

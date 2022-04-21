@@ -17,7 +17,7 @@ module.exports = function(channel, quote) {
             var webhook = await channel.createWebhook(quote.author.name, quote.author.profileImage);
             var url = `https://discord.com/api/webhooks/${webhook.id}/${webhook.token}`;
 
-            savedWebhooks[channel.id] = url;
+            //savedWebhooks[channel.id] = url;
         
             resolve(url);
 

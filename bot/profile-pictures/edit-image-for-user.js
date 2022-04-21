@@ -13,7 +13,7 @@ var uploadImage = require("./upload-image");
     var img = await jimp.read(imageUrl);
     img.greyscale();
 
-    var uploaded = await uploadImage(await img.getBufferAsync("image/png"));
+    var uploaded = await uploadImage(await img.getBufferAsync("image/png"), name);
 
     cache.saveForUser(name, hashKeyUser(user), uploaded);
 }
